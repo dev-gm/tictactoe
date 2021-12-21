@@ -1,2 +1,2 @@
 # tictactoe
-A tic tac toe game for n*n matrices, written in Rust and SDL2.
+A tic tac toe game, supporting custom matrices, written in Rust and SDL2.
