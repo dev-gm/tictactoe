@@ -7,16 +7,17 @@ pub enum Player {
 }
 
 pub struct TicTacToe {
-    whose_turn: Player,
+    pub whose_turn: Player,
     size: (u32, u32),
     pub grid: Vec<Vec<Option<Player>>>,
     pub buttons: Vec<Vec<Rect>>,
     button_sep: u32,
     button_size: u32,
+    pub ai: Option<Player>,
 }
 
 impl TicTacToe {
-    pub fn init(size: (u32, u32), button_sep: u32, button_size: u32) -> Self {
+    pub fn init(size: (u32, u32), button_sep: u32, button_size: u32, ai: Option<Player>) -> Self {
         let mut grid = Vec::with_capacity(size.0 as usize);
         let mut buttons = Vec::with_capacity(size.0 as usize);
         for i in 0..size.0 {
@@ -38,11 +39,12 @@ impl TicTacToe {
             buttons,
             button_sep,
             button_size,
+            ai,
         }
     }
     
-    pub fn from_old(old: Self) -> Self {
-        Self::init(old.size, old.button_sep, old.button_size)
+    pub fn into_new(self) -> Self {
+        Self::init(self.size, self.button_sep, self.button_size, self.ai)
     }
 
     pub fn screen_size(&self, scale: f32) -> (u32, u32) {
@@ -62,6 +64,18 @@ impl TicTacToe {
             }
         }
         None
+    }
+
+    pub fn get_optimal_move(&self) -> (u32, u32) {
+        for (i, row) in self.grid.iter().enumerate() {
+            for (j, cell) in row.iter().enumerate() {
+                if cell.is_none() {
+                    println!("{}, {}", i, j);
+                    return (i as u32, j as u32);
+                }
+            }
+        }
+        (0, 0)
     }
 
     pub fn play_turn(&mut self, i: u32, j: u32) -> bool {
@@ -107,7 +121,7 @@ impl TicTacToe {
     pub fn is_full(&self) -> bool {
         for i in 0..self.size.0 as usize {
             for j in 0..self.size.1 as usize {
-                if self.grid[i][j] == None {
+                if self.grid[i][j].is_none() {
                     return false;
                 }
             }

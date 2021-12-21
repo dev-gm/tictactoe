@@ -9,6 +9,7 @@ pub struct ProgramOptions {
     pub button_size: u32,
     pub x_color: Color,
     pub o_color: Color,
+    pub opponent_ai: bool,
 }
 
 impl ProgramOptions {
@@ -21,6 +22,7 @@ impl ProgramOptions {
             button_size: 200,
             x_color: Color::RGB(50, 200, 150),
             o_color: Color::RGB(255, 50, 50),
+            opponent_ai: false,
         };
         let mut recording = None;
         for arg in env::args().nth(1) {
@@ -40,6 +42,7 @@ impl ProgramOptions {
                         let rgb = arg.parse::<u32>().or(Err(String::from("Failed to parse y_color arg")))?.to_ne_bytes();
                         out.o_color = Color::RGB(rgb[0], rgb[1], rgb[2]);
                     },
+                    "opponent" => out.opponent_ai = arg == "ai",
                     _ => {},
                 }
                 recording = None;
@@ -47,14 +50,15 @@ impl ProgramOptions {
                 if &arg[..2] == "--" {
                     if &arg[2..] == "help" {
                         println!("\t\t\tTicTacToe\n
---title [string]\t\t\t\t- Title on window titlebar
---width [unsigned 32-bit int]
---height [unsigned 32-bit int]
---scale [32-bit float]
---button_sep [unsigned 32-bit int]
---button_size [unsigned 32-bit int]
---x_color [x_color: unsigned 32-bit int]\t- RGB array as 32-bit int
---o_color [unsigned 32-bit int]");
+--title [string - default='TicTacToe']\t\t\t- Title on window titlebar
+--width [unsigned 32-bit int - default=3]
+--height [unsigned 32-bit int - default=3]
+--scale [32-bit float - default=1.0]
+--button_sep [unsigned 32-bit int - default=10]
+--button_size [unsigned 32-bit int - default=200]
+--x_color [unsigned 32-bit int - default=0x32C896]
+--o_color [unsigned 32-bit int - default=0xFF3232]
+--opponent [string - default=player]\t\t\t- If arg is 'ai', opponent will be ai. Otherwise, opponent will be player.");
                         return Err(String::from("Help called"));
                     }
                     recording = Some(match &arg[2..] {
@@ -66,6 +70,7 @@ impl ProgramOptions {
                         "button_size" => "button_size",
                         "x_color" => "x_color",
                         "o_color" => "o_color",
+                        "opponent" => "opponent",
                         &_ => "",
                     });
                 }
