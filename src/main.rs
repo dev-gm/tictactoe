@@ -1,15 +1,49 @@
 use options::ProgramOptions;
 use game::{Player, TicTacToe};
+use sdl2::EventPump;
 use sdl2::event::Event;
 use sdl2::pixels::Color;
+use sdl2::render::WindowCanvas;
 use std::time::Duration;
 
 pub mod options;
 pub mod game;
 
+fn get_color_from_cell(options: &ProgramOptions, cell: Option<Player>) -> Color {
+    match cell {
+        Some(Player::X) => options.x_color,
+        Some(Player::O) => options.o_color,
+        None => Color::RGB(255, 255, 255),
+    }
+}
+
+// returns whether to quit
+fn render_endscreen(color: Color, canvas: &mut WindowCanvas, event_pump: &mut EventPump) -> bool {
+    canvas.set_draw_color(color);
+    canvas.clear();
+    canvas.present();
+    loop {
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit { .. } => return true,
+                Event::MouseButtonDown { .. } => return false,
+                _ => {},
+            }
+        }
+    }
+}
+
 fn main() -> Result<(), String> {
     let options = ProgramOptions::get()?;
-    let mut game = TicTacToe::init(options.size, options.button_sep, options.button_size);
+    let mut game = TicTacToe::new_instance(
+        options.size,
+        options.button_sep,
+        options.button_size,
+        if options.opponent_ai {
+            Some(Player::O)
+        } else {
+            None
+        });
     let screen_size = game.screen_size(options.scale);
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -25,11 +59,7 @@ fn main() -> Result<(), String> {
         canvas.clear();
         for (i, row) in game.buttons.iter().enumerate() {
             for (j, button) in row.iter().enumerate() {
-                canvas.set_draw_color(match game.grid[i][j] {
-                    Some(Player::X) => options.x_color,
-                    Some(Player::O) => options.o_color,
-                    None => Color::RGB(255, 255, 255),
-                });
+                canvas.set_draw_color(get_color_from_cell(&options, game.grid[i][j]));
                 canvas.draw_rect(*button).unwrap(); // UNSAFE
                 canvas.fill_rect(*button).unwrap(); // UNSAFE
             }
@@ -39,32 +69,25 @@ fn main() -> Result<(), String> {
                 Event::Quit { .. } => break 'running,
                 Event::MouseButtonDown { x, y, .. } => {
                     if let Some((i, j)) = game.button_pressed(x, y) {
-                        if game.play_turn(i as u32, j as u32) {
-                            if game.player_won() {
-                                canvas.set_draw_color(match game.grid[i][j] {
-                                    Some(Player::X) => options.x_color,
-                                    Some(Player::O) => options.o_color,
-                                    None => Color::RGB(255, 255, 255),
-                                });
-                                canvas.clear();
-                                canvas.present();
-                                loop {
-                                    for event in event_pump.poll_iter() {
-                                        match event {
-                                            Event::Quit { .. } => break 'running,
-                                            Event::MouseButtonDown { .. } => {
-                                                game = TicTacToe::from_old(game);
-                                                continue 'running;
-                                            },
-                                            _ => {},
-                                        }
-                                    }
+                        match game.play(i, j) {
+//fn render_endscreen(color: Color, canvas: &mut WindowCanvas, event_pump: &mut EventPump) -> bool {
+                            Some(Some(player)) => {
+                                if render_endscreen(
+                                    get_color_from_cell(&options, Some(player)),
+                                    &mut canvas,
+                                    &mut event_pump,
+                                ) {
+                                    break 'running;
+                                } else {
+                                    game.restart();
+                                    continue 'running;
                                 }
-                            } else if game.is_full() {
-                                game = TicTacToe::from_old(game);
+                            },
+                            Some(None) => {
+                                game.restart();
                                 continue 'running;
-                            }
-                            game.switch_player();
+                            },
+                            None => continue 'running,
                         }
                     }
                 },
